@@ -18,6 +18,9 @@ dataset_out/
 # local tooling state
 .freebuff/
 
+# local clone of the same repo made inside the checkout
+INTELLITAX-AI/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
