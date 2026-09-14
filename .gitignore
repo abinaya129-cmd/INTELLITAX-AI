@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# generated dataset output (regenerate: node scripts/generate_dataset.mjs)
+dataset_out/
+
+# local tooling state
+.freebuff/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
