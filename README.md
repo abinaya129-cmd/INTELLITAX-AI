@@ -2,8 +2,9 @@
 ### Sector-Conditioned GST Anomaly Detection — Tamil Nadu Commercial Tax · Hackathon 2026
 
 > **One line:** Every dealer is scored with the evidence that fits its business model —
-> manufacturers on production footprint, traders on GSTR-1/2A/3B stock triangulation,
-> logistics on fleet economics — with every score explained in rupees, not jargon.
+> manufacturers on electricity + employee count, traders on the GSTR-2A − 3B
+> stock-reconciliation checkpoint, logistics on fleet economics — with every score
+> explained in rupees, not jargon.
 
 ---
 
@@ -41,18 +42,26 @@ while missing conduits whose paperwork is internally consistent.
 
 1. **Sector-conditioned scoring (our core novelty).** Evidence only counts when the
    business model makes it count:
-   - *Manufacturers* → electricity + employment + goods movement define the physical
-     ceiling. The **employment signal is deliberately bounded (~20/100 pts max
-     alone)** — a genuine mid-scale employer is never flagged on headcount.
-   - *Traders* → production signals are **not evidence at all**. Stock movement is
-     verified through **GSTR-1 vs GSTR-2A triangulation**: purchases without matching
-     sales expose conduits; **GSTR-1 vs GSTR-3B divergence** (invoiced but never
-     returned) exposes the *main culprits* — firms understating turnover.
+   - *Manufacturers* → **electricity + employee count** define the physical ceiling.
+     The **employment signal is deliberately bounded (max 26 pts alone)** — a genuine
+     mid-scale employer is never flagged on headcount. E-way bills are deliberately
+     NOT scored: goods movement supports a genuine and a fraudulent firm alike.
+   - *Traders* → production signals are **not evidence at all**. The checkpoint is
+     pure return triangulation:
+     `GSTR-2A purchases − GSTR-3B sales = the stock the books must show`.
+     Buy ₹20 L, sell ₹15 L → the ₹5 L balance must sit on the shelf (books showing
+     ~₹7 L pass within the sector's margin tolerance). Books far **below** the
+     balance mean goods left through undeclared sales; books far **above** it mean
+     paper/dummy purchases propping up ITC — either face fails the checkpoint.
+     Conduits (2A purchases, no GSTR-1 sales) and **GSTR-1 vs 3B divergence**
+     (invoiced but never returned — the *main culprits*) are flagged alongside.
    - *Logistics* → fleet economics: trips × distance × realisation/km put a floor
-     under declared revenue.
+     under declared revenue (the one segment where e-way stays, as its feed).
 2. **Asymmetric fraud direction.** Competing hacks penalise both directions.
    We score **only upward gaps** (evidence ≫ declared). Over-reporting earns zero
    points — because understated turnover, not paperwork noise, is the real crime.
+   And return-derived evidence is capped (≤85 pts) so paper alone can never
+   outrank physically corroborated fraud.
 3. **Rupee-explainability.** Every flagged dealer ships with plain-language reasons
    quoting the exact gap ("₹90.59 L implied vs ₹21.48 L declared — 77% unexplained").
 
@@ -72,17 +81,19 @@ while missing conduits whose paperwork is internally consistent.
 ```
 Data feeds (synthetic, statistically realistic)      Scoring kernel (src/data/gstDataEngine.js)
 ├─ gst_returns.csv  (GSTR-1/3B/2A)  ─┐               ├─ segment router (Manufacturer/Trader/Logistics)
-├─ electricity.csv  (TANGEDCO)      ─┼─▶ genDealers()─├─ per-segment evidence weights + tolerances
-├─ freight.csv      (e-way bills)   ─┤   15,000 rows ├─ GSTR triangulation blocks
+├─ electricity.csv  (TANGEDCO)      ─┼─▶ genDealers()─├─ stock-reconciliation checkpoint (2A−3B vs books)
+├─ freight.csv      (e-way, LOGIST. ─┤   15,000 rows ├─ per-segment evidence weights + tolerances
 ├─ employment.csv   (EPF/ESI)       ─┘               └─ composite-threshold + ITC checks
                                                               │
             React 19 + Vite dashboard  ◀── simulated REST API (220 ms latency, pagination)
             (landing · command center · dealer list · profile · analytics)
 ```
 
-- **Detection blocks:** physical evidence (≤80 pts) + purchase-without-sale (≤45) +
-  turnover divergence (≤35) + fleet economics (≤45) + excessive ITC (≤30) +
-  threshold gaming (25) → 0-100 (High ≥60, Medium ≥30).
+- **Detection blocks:** electricity (≤55) + employment (≤26, manufacturers only) +
+  **stock reconciliation (≤55, traders)** + purchase-without-sale (≤40) + turnover
+  divergence (≤35) + fleet economics (≤72, logistics) + excessive ITC (≤20) +
+  corroborated threshold gaming (≤32); return-derived evidence capped at 85 → 0-100
+  (High ≥60, Medium ≥30).
 - **Dataset generator:** `node scripts/generate_dataset.mjs` regenerates the CSVs
   **with the same kernel** that runs in the demo — data and scores can never drift.
 
@@ -103,14 +114,18 @@ Measured on the shipped 15,000-row dataset (1,500 planted frauds):
 
 | Metric | Result |
 |---|---|
-| Recall (planted frauds caught, score ≥30) | **88.5%** |
-| False positives among compliant rows | **0.2%** (21 / 13,500) |
-| Precision proxy (flagged that are planted) | ~98% |
-| Typology agreement (top label = planted type) | 56% (single-label metric; multi-cue rows are counted as partial) |
+| Recall (planted frauds caught, score ≥30) | **96.9%** |
+| False positives among compliant rows | **0** (0 / 13,500) |
+| Precision proxy (flagged that are planted) | 100% |
+| Typology agreement (top label = planted type) | 75.3% (single-label metric; multi-cue rows are counted as partial) |
+| Flag rate by segment | Mfr 7.2% · Trader 11.1% · Logistics 15.4% |
 | Scoring throughput | 15,000 rows < 100 ms (client-side) |
 | Build | Vite production build, 0 lint errors |
 
 Reproduce anytime: `node scripts/generate_dataset.mjs` (deterministic seed 42).
+The spec case is encoded in the kernel: a trader buying ₹20 L and selling ₹15 L
+with ₹7 L of book stock scores **0 (passes)**; the same returns with ₹2 L of book
+stock scores **31 (flagged)**.
 
 ## 8. Responsible AI
 
