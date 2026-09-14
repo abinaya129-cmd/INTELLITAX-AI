@@ -21,6 +21,9 @@ dataset_out/
 # local clone of the same repo made inside the checkout
 INTELLITAX-AI/
 
+# local zipped copy of the source (the app itself lives at the repo root)
+gst-dashboard-code/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
