@@ -1,0 +1,84 @@
+{
+  "trained_at": "2026-09-27T15:42:18.647721+00:00",
+  "seed": 42,
+  "dataset": {
+    "path": "dataset_out/full_dataset_with_scores.csv",
+    "md5": "9d266a011adc80709c79fd1ba7f3d483",
+    "rows": 15000,
+    "fraud_rows": 1500
+  },
+  "features_in": [
+    "log_declared",
+    "log_purchases",
+    "log_gstr1_sales",
+    "log_gstr3b_turnover",
+    "log_book_stock",
+    "log_tax_paid",
+    "itc_ratio",
+    "purchase_flow_ratio",
+    "purchase_no_sale",
+    "turnover_divergence",
+    "stock_balance_ratio",
+    "stock_cover_ratio",
+    "stock_short",
+    "stock_excess",
+    "log_ratio_elec",
+    "log_ratio_emp",
+    "log_ratio_fleet",
+    "gap_elec",
+    "gap_emp",
+    "gap_fleet",
+    "headcount_per_cr",
+    "units_per_cr",
+    "eway_per_cr",
+    "declared_near_composite",
+    "tax_rate_effective",
+    "is_manufacturer",
+    "is_trader",
+    "is_logistics",
+    "log_headcount",
+    "state_econ_factor",
+    "late_or_nonfiler",
+    "sector",
+    "state",
+    "reg_type"
+  ],
+  "categorical": [
+    "sector",
+    "state",
+    "reg_type"
+  ],
+  "classes_typology": [
+    "electricity_mismatch",
+    "employment_mismatch",
+    "fleet_revenue_mismatch",
+    "gstr_purchase_no_sale",
+    "gstr_turnover_divergence",
+    "shell_itc_pattern",
+    "stock_reconciliation",
+    "threshold_manipulation"
+  ],
+  "decision_threshold": 0.1,
+  "metrics": {
+    "fraud": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0
+    },
+    "typology_top1": 0.98,
+    "typology_top2": 0.9933333333333333,
+    "isolation_forest": {
+      "fraud_caught_at_5pct_band": 0.45,
+      "false_alarm_on_compliant": 0.05
+    }
+  },
+  "versions": {
+    "xgboost": "2.1.4",
+    "scikit-learn": "1.6.1",
+    "shap": "0.46.0",
+    "pandas": "2.2.3",
+    "numpy": "2.0.2"
+  }
+}

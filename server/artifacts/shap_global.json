@@ -1,0 +1,62 @@
+[
+  {
+    "feature": "purchase_flow_ratio",
+    "mean_abs_shap": 3.4239771366119385
+  },
+  {
+    "feature": "stock_balance_ratio",
+    "mean_abs_shap": 3.154853105545044
+  },
+  {
+    "feature": "gap_emp",
+    "mean_abs_shap": 1.3368455171585083
+  },
+  {
+    "feature": "itc_ratio",
+    "mean_abs_shap": 1.061223030090332
+  },
+  {
+    "feature": "log_ratio_emp",
+    "mean_abs_shap": 0.5080001354217529
+  },
+  {
+    "feature": "headcount_per_cr",
+    "mean_abs_shap": 0.3141838312149048
+  },
+  {
+    "feature": "stock_cover_ratio",
+    "mean_abs_shap": 0.2805864214897156
+  },
+  {
+    "feature": "gap_fleet",
+    "mean_abs_shap": 0.2623269855976105
+  },
+  {
+    "feature": "gap_elec",
+    "mean_abs_shap": 0.24408912658691406
+  },
+  {
+    "feature": "turnover_divergence",
+    "mean_abs_shap": 0.15857021510601044
+  },
+  {
+    "feature": "tax_rate_effective",
+    "mean_abs_shap": 0.11877467483282089
+  },
+  {
+    "feature": "log_ratio_elec",
+    "mean_abs_shap": 0.1034785732626915
+  },
+  {
+    "feature": "log_ratio_fleet",
+    "mean_abs_shap": 0.09311892837285995
+  },
+  {
+    "feature": "log_gstr3b_turnover",
+    "mean_abs_shap": 0.07942523807287216
+  },
+  {
+    "feature": "log_headcount",
+    "mean_abs_shap": 0.06280308961868286
+  }
+]
