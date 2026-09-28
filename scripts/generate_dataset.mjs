@@ -1,13 +1,13 @@
 /* ================================================================================
    INTELLITAX-AI · Dataset generator (Node, no dependencies)
    --------------------------------------------------------------------------------
-   Regenerates the synthetic-but-realistic Tamil Nadu dealer dataset using the
+   Regenerates the synthetic-but-realistic PAN-INDIA dealer dataset using the
    SAME sector-conditioned scoring kernel that runs live in the dashboard, so
    the CSV always matches what the demo shows.
 
    Output (gst_dataset28.zip):
      gst_returns.csv            — GSTR-1 / 3B / 2A triangulation + declared, tax, ITC
-     electricity.csv            — TANGEDCO-style consumption feed
+     electricity.csv            — state-DISCOM-style consumption feed
      freight.csv                — e-way bill feed (LOGISTICS ONLY since v28)
      employment.csv             — EPF/ESI headcount + wage bill
      full_dataset_with_scores.csv — everything joined + engine scores
@@ -37,9 +37,9 @@ dealers.forEach((d) => { segCount[d.segment] = (segCount[d.segment] || 0) + 1; }
 
 /* ---------- gst_returns.csv (GSTR-1 / GSTR-3B / GSTR-2A view) ---------- */
 const gstReturns =
-  'gstin,businessName,district,sector,segment,regType,declared,gstr1Sales,gstr3bTurnover,purchases,taxPaid,itcClaimed,itcRatio,filingStatus\n' +
+  'gstin,businessName,state,district,sector,segment,regType,declared,gstr1Sales,gstr3bTurnover,purchases,taxPaid,itcClaimed,itcRatio,filingStatus\n' +
   dealers.map((d) => [
-    d.gstin, csv(d.businessName), d.district, csv(d.sector), d.segment, d.regType,
+    d.gstin, csv(d.businessName), d.state, d.district, csv(d.sector), d.segment, d.regType,
     r2(d.declared), r2(d.gstr1Sales), r2(d.gstr3bTurnover), r2(d.purchases),
     r2(d.taxPaid), r2(d.itcClaimed), d.itcRatio.toFixed(4), d.filingStatus,
   ].join(',')).join('\n') + '\n';
@@ -63,12 +63,12 @@ const employment =
 
 /* ---------- full_dataset_with_scores.csv ---------- */
 const fullHeader =
-  'gstin,businessName,district,sector,segment,regType,declared,gstr1Sales,gstr3bTurnover,purchases,bookStock,stockBalance,stockShort,stockExcess,taxPaid,itcClaimed,itcRatio,filingStatus,' +
+  'gstin,businessName,state,district,sector,segment,regType,declared,gstr1Sales,gstr3bTurnover,purchases,bookStock,stockBalance,stockShort,stockExcess,taxPaid,itcClaimed,itcRatio,filingStatus,' +
   'connectionType,sanctionedLoad,monthlyUnits,ewayCountMonthly,ewayValueMonthly,avgDistance,headcount,wageBill,' +
   'impliedElec,impliedEmp,fleetImplied,purchaseFlowRatio,purchaseNoSale,turnoverDivergence,' +
   'riskScore,riskTier,detectedAnomalyType,plantedType,reasons\n';
 const fullRows = dealers.map((d) => [
-  d.gstin, csv(d.businessName), d.district, csv(d.sector), d.segment, d.regType,
+  d.gstin, csv(d.businessName), d.state, d.district, csv(d.sector), d.segment, d.regType,
   r2(d.declared), r2(d.gstr1Sales), r2(d.gstr3bTurnover), r2(d.purchases),
   d.bookStock != null ? r2(d.bookStock) : '',
   d.stockBalance != null ? r2(d.stockBalance) : '',
@@ -94,9 +94,9 @@ const fullRows = dealers.map((d) => [
 const full = fullHeader + fullRows.join('\n') + '\n';
 
 /* ---------- data dictionary ---------- */
-const dict = `INTELLITAX-AI synthetic GST dataset (gst_dataset28)
+const dict = `INTELLITAX-AI synthetic GST dataset (gst_dataset29 — PAN-INDIA)
 =====================================================
-Rows: ${dealers.length} Tamil Nadu dealers (deterministic seed 42)
+Rows: ${dealers.length} dealers across all Indian states & UTs (deterministic seed 42)
 Segment mix: ${Object.entries(segCount).map(([k, v]) => `${k} ${v}`).join(', ')}
 
 DETECTION MODEL (sector-conditioned — v28 checkpoint model)
@@ -117,9 +117,11 @@ ASYMMETRY RULE (all versions)
   evasion signature, so low declarers are treated as the main culprits.
 
 COLUMNS (full_dataset_with_scores.csv)
-  gstin                  15-char GSTIN (33 = Tamil Nadu state code)
+  gstin                  15-char GSTIN (first 2 digits = real state code:
+                         27 MH, 33 TN, 24 GJ, 29 KA, 09 UP, 07 DL ... all 32)
   businessName           synthetic legal name
-  district               one of 16 TN districts (industrial-weight sampling)
+  state                  dealer's state/UT (name; 32 states & UTs modelled)
+  district               real industrial district within that state
   sector                 10 business sectors
   segment                Manufacturer | Trader | Logistics (drives the model)
   regType                Regular | Composite (Composite capped at Rs.1.5 Cr)
@@ -130,7 +132,7 @@ COLUMNS (full_dataset_with_scores.csv)
   taxPaid                net cash GST paid (Rs.)
   itcClaimed / itcRatio  Input Tax Credit claimed and its share of turnover
   filingStatus           Filed on time | Filed late | Non-filer
-  monthlyUnits           electricity kWh/month (TANGEDCO-style feed)
+  monthlyUnits           electricity kWh/month (state-DISCOM-style feed)
   ewayCountMonthly       e-way bills per month (LOGISTICS rows only, else blank)
   ewayValueMonthly       goods value moved per month (Rs., logistics rows only)
   headcount, wageBill    EPF/ESI-registered employees and annual wage bill
@@ -155,6 +157,12 @@ COLUMNS (full_dataset_with_scores.csv)
 GROUND TRUTH
   Every 10th row carries a planted typology (plantedType), so precision and
   recall of the scoring kernel can be measured directly from the CSV.
+  STATE CALIBRATION (v29): every state carries an economic factor that
+  scales electricity intensity, employee productivity and wage levels
+  (e.g. MH 1.30 ... TN 1.15 ... UP 0.90 ... BR 0.75). Physical evidence is
+  generated and interpreted AT the state's economic level, so a Bihar
+  factory is never judged on a Mumbai benchmark — the same identity check
+  runs nationwide with locally calibrated benchmarks.
   Detection thresholds: ELE_TOL=${ELE_TOL}, TURN_TOL=${TURN_TOL}, PURCH_TOL=${PURCH_TOL},
   STOCK_TOL=${STOCK_TOL} (cap ${STOCK_CAP}), composite band=${Math.round(COMPOSITE_TOL * 100)}%
   under Rs.${(COMPOSITE_LIMIT / 1e7).toFixed(1)} Cr, representative GST rate=${TAX_RATE * 100}%.
@@ -181,6 +189,10 @@ const falsePos = dealers.filter((d) => (!d.plantedType || d.plantedType === 'non
 const typeAgree = planted.filter((d) => d.detectedType === d.plantedType);
 
 console.log(`Generated ${dealers.length} dealer rows in dataset_out/`);
+const stateCounts = {};
+dealers.forEach((d) => { stateCounts[d.state] = (stateCounts[d.state] || 0) + 1; });
+const nStates = Object.keys(stateCounts).length;
+console.log(`States covered: ${nStates} · top: ${Object.entries(stateCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s, c]) => `${s} ${c}`).join(', ')}`);
 console.log(`Segments: ${JSON.stringify(segCount)}`);
 console.log(`Tiers: High ${high} (${pct(high, N_DEALERS)}), Medium ${med} (${pct(med, N_DEALERS)}), Low ${N_DEALERS - high - med} (${pct(N_DEALERS - high - med, N_DEALERS)})`);
 console.log(`Planted fraud: ${planted.length} · caught (>=30): ${caught.length} (${pct(caught.length, planted.length)} recall)`);
@@ -188,7 +200,7 @@ console.log(`Typology agreement: ${typeAgree.length}/${planted.length} (${pct(ty
 console.log(`False positives among compliant rows: ${falsePos.length} of ${N_DEALERS - planted.length} (${pct(falsePos.length, N_DEALERS - planted.length)})`);
 
 /* ---------- zip ---------- */
-const zipPath = join(root, 'gst_dataset28.zip');
+const zipPath = join(root, 'gst_dataset29_india.zip');
 const zipCmd = process.platform === 'win32'
   ? `powershell -NoProfile -Command "Compress-Archive -Path '${outDir.replace(/'/g, "''")}\\*' -DestinationPath '${zipPath.replace(/'/g, "''")}' -Force"`
   : `cd "${outDir}" && zip -j "${zipPath}" *.csv README_dataset.txt`;

@@ -1,5 +1,5 @@
 # INTELLITAX-AI
-### Sector-Conditioned GST Anomaly Detection — Tamil Nadu Commercial Tax · Hackathon 2026
+### Sector-Conditioned GST Anomaly Detection — Pan-India (All States & UTs) · SIH 2026
 
 > **One line:** Every dealer is scored with the evidence that fits its business model —
 > manufacturers on electricity + employee count, traders on the GSTR-2A − 3B
@@ -81,8 +81,9 @@ while missing conduits whose paperwork is internally consistent.
 ```
 Data feeds (synthetic, statistically realistic)      Scoring kernel (src/data/gstDataEngine.js)
 ├─ gst_returns.csv  (GSTR-1/3B/2A)  ─┐               ├─ segment router (Manufacturer/Trader/Logistics)
-├─ electricity.csv  (TANGEDCO)      ─┼─▶ genDealers()─├─ stock-reconciliation checkpoint (2A−3B vs books)
-├─ freight.csv      (e-way, LOGIST. ─┤   15,000 rows ├─ per-segment evidence weights + tolerances
+├─ electricity.csv  (state DISCOM) ─┼─▶ genDealers()─├─ stock-reconciliation checkpoint (2A−3B vs books)
+├─ freight.csv      (e-way, LOGIST. ─┤   15,000 rows ├─ per-segment weights, per-STATE calibration
+├─ employment.csv    (EPF/ESI)      ┤   nationwide   ┤   + tolerances
 ├─ employment.csv   (EPF/ESI)       ─┘               └─ composite-threshold + ITC checks
                                                               │
             React 19 + Vite dashboard  ◀── simulated REST API (220 ms latency, pagination)
@@ -137,7 +138,7 @@ stock scores **31 (flagged)**.
 - **Transparency:** every score is traceable to named evidence in rupees; no black
   box makes the final call.
 - **Security posture:** action notes and audit trail are append-only; in production
-  the design assumes departmental SSO and feed-level encryption (NIC/TANGEDCO APIs).
+  the design assumes departmental SSO and feed-level encryption (NIC / state-DISCOM APIs).
 - **Human-in-the-loop:** the model *prioritises*, the officer *decides* — flag /
   assign / clear-as-false-positive is always human.
 

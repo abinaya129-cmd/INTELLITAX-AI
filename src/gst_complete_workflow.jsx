@@ -6,10 +6,11 @@ import {
   FileText, Package, IndianRupee
 } from 'lucide-react';
 import {
-  C, DISTRICTS, SECTOR_KEYS, SEGMENTS,
+  C, DISTRICTS, STATES, districtsOfState, SECTOR_KEYS, SEGMENTS,
   ANOMALY_LABELS, ANOMALY_ORDER, ANOMALY_COLORS,
   PAGE_SIZE, genDealers, createApi, loadFlagIndex, saveFlagIndex, riskTier, fmtCr, fmtMoney,
 } from './data/gstDataEngine.js';
+import { remoteApi, postFlagRemote } from './api/gstApi.js';
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -67,7 +68,7 @@ function LoadingSkeleton() {
       <GlobalStyles />
       <div style={{ textAlign: 'center' }}>
         <div style={{ width: 40, height: 40, border: `3px solid ${C.panelLine}`, borderTopColor: C.sealBright, borderRadius: '50%', margin: '0 auto 18px', animation: 'spin 0.8s linear infinite' }} />
-        <div style={{ color: C.textFaint, fontSize: 13, fontFamily: 'monospace' }}>Generating 15,000 dealer records…</div>
+        <div style={{ color: C.textFaint, fontSize: 13, fontFamily: 'monospace' }}>Generating 15,000 dealer records across all states…</div>
       </div>
     </div>
   );
@@ -75,7 +76,7 @@ function LoadingSkeleton() {
 
 /* Segment-aware evidence copy used on the landing "signals" section. */
 const SIGNAL_CARDS = [
-  { icon: Zap, color: C.elec, title: 'Electricity load', seg: 'Manufacturers', copy: "Monthly units consumed reveal true production scale — a factory running industrial machinery all month can't credibly declare retail-scale turnover.", tag: 'TANGEDCO-style feed' },
+  { icon: Zap, color: C.elec, title: 'Electricity load', seg: 'Manufacturers', copy: "Monthly units consumed reveal true production scale — a factory running industrial machinery all month can't credibly declare retail-scale turnover.", tag: 'State DISCOM feed' },
   { icon: Package, color: C.freight, title: 'Stock reconciliation', seg: 'Traders', copy: 'The checkpoint: GSTR-2A purchases minus GSTR-3B sales must equal the stock on the books. Buy ₹20 L, sell ₹15 L — the ₹5 L balance must sit on the shelf. Books that fall short hide off-book sales; books that balloon hold paper stock propping up ITC.', tag: '2A − 3B = stock' },
   { icon: FileText, color: C.gstp, title: 'GSTR-1 × 2A × 3B', seg: 'Traders', copy: 'Return triangulation without any physical feed: purchases visible in GSTR-2A must resurface as GSTR-1 sales. Purchases with no sales expose conduit firms; invoiced sales missing from the 3B cash return expose understated turnover.', tag: 'GSTN return triangulation' },
   { icon: Users, color: C.emp, title: 'Employment footprint', seg: 'Manufacturers & Logistics', copy: 'EPF/ESI headcount implies a minimum output for factories and fleet size for transporters — deliberately low-weighted so genuine employers are never flagged on headcount alone.', tag: 'EPF/ESI-style feed' },
@@ -93,7 +94,7 @@ function Landing({ featuredDealer, totalDealers, onEnter }) {
         <div style={{ maxWidth: 1180, margin: '0 auto', padding: '0 24px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <div style={{ width: 32, height: 32, borderRadius: 7, background: `linear-gradient(155deg, ${C.sealBright}, ${C.seal})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ShieldAlert size={16} color="#160F02" /></div>
-            <div><div style={{ fontSize: 14, fontWeight: 600 }}>GST Anomaly Detection</div><div style={{ fontSize: 10.5, color: C.textFaint }}>Tamil Nadu Commercial Tax · Hackathon 2026</div></div>
+            <div><div style={{ fontSize: 14, fontWeight: 600 }}>GST Anomaly Detection</div><div style={{ fontSize: 10.5, color: C.textFaint }}>GST Intelligence Network · All States & UTs · Phase 2 ML Backend</div></div>
           </div>
           <button onClick={onEnter} style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.seal, color: '#160F02', border: 'none', borderRadius: 7, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             View live demo <ArrowRight size={13} />
@@ -161,7 +162,7 @@ function Landing({ featuredDealer, totalDealers, onEnter }) {
           <div style={{ width: 1, height: 52, background: C.panelLine, justifySelf: 'center' }} />
           <div>
             <div style={{ fontFamily: "'Georgia', serif", fontSize: 32, fontWeight: 700, color: C.sealBright }}>15L+</div>
-            <div style={{ fontSize: 12, color: C.textFaint, marginTop: 6, maxWidth: 200 }}>registered dealers in Tamil Nadu — the real-world target scale</div>
+            <div style={{ fontSize: 12, color: C.textFaint, marginTop: 6, maxWidth: 200 }}>registered dealers nationwide — every state & UT, scored with state-calibrated evidence</div>
           </div>
           <div style={{ width: 1, height: 52, background: C.panelLine, justifySelf: 'center' }} />
           <div>
@@ -198,11 +199,11 @@ function Landing({ featuredDealer, totalDealers, onEnter }) {
           <div style={{ maxWidth: 1180, margin: '0 auto' }}>
             <div style={{ fontFamily: 'monospace', fontSize: 11.5, letterSpacing: '0.09em', textTransform: 'uppercase', color: C.textFaint, marginBottom: 14 }}>EXPLAINABLE, NOT A BLACK BOX — LIVE EXAMPLE</div>
             <h2 style={{ fontSize: 'clamp(26px,3.2vw,36px)', fontWeight: 700, color: '#FBFAF6', maxWidth: 600, marginBottom: 8 }}>Every score comes with its reasons, in rupees.</h2>
-            <p style={{ fontSize: 13.5, color: C.textFaint, marginBottom: 40 }}>This is the actual highest-risk dealer from the live dataset below — not a mockup.</p>
+            <p style={{ fontSize: 13.5, color: C.textFaint, marginBottom: 40 }}>This is the actual highest-risk dealer from the live dataset below — not a mockup. Phase 2 serves every score from the XGBoost + Isolation Forest + SHAP backend, with an in-browser simulation fallback.</p>
             <div style={{ display: 'grid', gridTemplateColumns: '0.85fr 1.15fr', gap: 50, alignItems: 'center' }} className="gap-grid">
               <div style={{ background: C.paper, borderRadius: 14, padding: '28px 26px', color: C.inkOnPaper, boxShadow: '0 20px 60px -20px rgba(0,0,0,0.5)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, borderBottom: `1px solid ${C.paperLine}`, paddingBottom: 16 }}>
-                  <div><div style={{ fontFamily: "'Georgia', serif", fontWeight: 700, fontSize: 16 }}>{featuredDealer.businessName}</div><div style={{ fontFamily: 'monospace', fontSize: 11, color: '#6B6250', marginTop: 4 }}>{featuredDealer.gstin} · {featuredDealer.district}</div></div>
+                  <div><div style={{ fontFamily: "'Georgia', serif", fontWeight: 700, fontSize: 16 }}>{featuredDealer.businessName}</div><div style={{ fontFamily: 'monospace', fontSize: 11, color: '#6B6250', marginTop: 4 }}>{featuredDealer.gstin} · {featuredDealer.district}, {featuredDealer.state}</div></div>
                   <div style={{ background: C.high, color: '#FBEFEC', fontFamily: 'monospace', fontSize: 12, fontWeight: 700, padding: '6px 12px', borderRadius: 99 }}>RISK {featuredDealer.riskScore}</div>
                 </div>
                 {[
@@ -296,6 +297,7 @@ export default function GSTAnomalySystem() {
   const [anomalyBreakdown, setAnomalyBreakdown] = useState({});
 
   const [search, setSearch] = useState('');
+  const [filterState, setFilterState] = useState('All');
   const [filterDistrict, setFilterDistrict] = useState('All');
   const [filterSector, setFilterSector] = useState('All');
   const [filterSegment, setFilterSegment] = useState('All');
@@ -315,7 +317,12 @@ export default function GSTAnomalySystem() {
   useEffect(() => {
     const t = setTimeout(async () => {
       const d = genDealers();
-      setDealers(d); setApi(createApi(d));
+      const simApi = createApi(d);
+      /* Phase 2: remote-first — every call hits the FastAPI backend
+         (XGBoost + Isolation Forest + SHAP), via the Vite dev proxy or
+         VITE_API_BASE, and transparently falls back to this in-browser
+         simulation on any failure (e.g. static deploy without backend). */
+      setDealers(d); setApi(remoteApi(simApi));
       const idx = await loadFlagIndex();
       const map = {}; idx.forEach((f) => { map[f.gstin] = f; });
       setFlags(map); setLoading(false);
@@ -334,8 +341,8 @@ export default function GSTAnomalySystem() {
   useEffect(() => {
     if (!api || screen !== 'app' || view !== 'dealers') return;
     setListLoading(true);
-    api.getDealers({ search, district: filterDistrict, sector: filterSector, segment: filterSegment, risk: filterRisk, page }).then((res) => { setDealerResult(res); setListLoading(false); });
-  }, [api, screen, view, search, filterDistrict, filterSector, filterSegment, filterRisk, page]);
+    api.getDealers({ search, state: filterState, district: filterDistrict, sector: filterSector, segment: filterSegment, risk: filterRisk, page }).then((res) => { setDealerResult(res); setListLoading(false); });
+  }, [api, screen, view, search, filterState, filterDistrict, filterSector, filterSegment, filterRisk, page]);
 
   useEffect(() => {
     if (!api || !selectedGstin) return;
@@ -362,6 +369,7 @@ export default function GSTAnomalySystem() {
       if (action === 'assign_officer') status = 'assigned';
       if (action === 'clear') status = 'cleared';
       const updated = { ...existing, status, history: [entry, ...existing.history] };
+      postFlagRemote(gstin, action);
       const next = { ...prev, [gstin]: updated };
       saveFlagIndex(Object.values(next));
       return next;
@@ -384,7 +392,7 @@ export default function GSTAnomalySystem() {
         <div style={{ maxWidth: 1180, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <button onClick={goToLanding} style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
             <div style={{ width: 32, height: 32, borderRadius: 7, background: `linear-gradient(155deg, ${C.sealBright}, ${C.seal})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ShieldAlert size={16} color="#160F02" /></div>
-            <div><div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>GST Anomaly Detection</div><div style={{ fontSize: 10.5, color: C.textFaint }}>Tamil Nadu Commercial Tax Department</div></div>
+            <div><div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>GST Anomaly Detection</div><div style={{ fontSize: 10.5, color: C.textFaint }}>GST Intelligence · Pan-India Network (All States & UTs)</div></div>
           </button>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={goToLanding} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 500, padding: '8px 14px', borderRadius: 7, border: 'none', cursor: 'pointer', background: 'transparent', color: C.textSoft }}><Home size={14} /> Overview</button>
@@ -415,7 +423,7 @@ export default function GSTAnomalySystem() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
                 {districtStats.map((d) => { const t = riskTier(d.avg); return (
                   <button key={d.district} onClick={() => { setFilterDistrict(d.district); setPage(1); setView('dealers'); }} style={{ textAlign: 'left', border: `1px solid ${t.color}40`, background: `${t.color}14`, borderRadius: 10, padding: '14px 14px', cursor: 'pointer' }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>{d.district}</div>
+              <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>{d.district} <span style={{ fontSize: 9.5, fontWeight: 400, color: C.textFaint }}>· {d.state}</span></div>
                     <div style={{ fontSize: 20, fontWeight: 700, color: t.color, fontFamily: 'monospace' }}>{d.avg}</div>
                     <div style={{ fontSize: 10.5, color: C.textFaint, marginTop: 4 }}>{d.count.toLocaleString('en-IN')} dealers · {d.high} high</div>
                   </button>
@@ -448,7 +456,8 @@ export default function GSTAnomalySystem() {
                 <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search by GSTIN or business name…" style={{ width: '100%', background: C.panel, border: `1px solid ${C.panelLine}`, borderRadius: 8, padding: '10px 12px 10px 34px', color: C.text, fontSize: 13.5, outline: 'none' }} />
               </div>
               <select value={filterSegment} onChange={(e) => { setFilterSegment(e.target.value); setPage(1); }} style={{ background: C.panel, border: `1px solid ${C.panelLine}`, borderRadius: 8, padding: '10px 12px', color: C.text, fontSize: 13 }}><option value="All">All Segments</option>{SEGMENTS.map((s) => <option key={s} value={s}>{s}</option>)}</select>
-              <select value={filterDistrict} onChange={(e) => { setFilterDistrict(e.target.value); setPage(1); }} style={{ background: C.panel, border: `1px solid ${C.panelLine}`, borderRadius: 8, padding: '10px 12px', color: C.text, fontSize: 13 }}><option value="All">All Districts</option>{DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}</select>
+              <select value={filterState} onChange={(e) => { setFilterState(e.target.value); setFilterDistrict('All'); setPage(1); }} style={{ background: C.panel, border: `1px solid ${C.panelLine}`, borderRadius: 8, padding: '10px 12px', color: C.text, fontSize: 13 }}><option value="All">All States</option>{STATES.map((s) => <option key={s} value={s}>{s}</option>)}</select>
+              <select value={filterDistrict} onChange={(e) => { setFilterDistrict(e.target.value); setPage(1); }} style={{ background: C.panel, border: `1px solid ${C.panelLine}`, borderRadius: 8, padding: '10px 12px', color: C.text, fontSize: 13 }}><option value="All">All Districts</option>{districtsOfState(filterState).map((d) => <option key={d} value={d}>{d}</option>)}</select>
               <select value={filterSector} onChange={(e) => { setFilterSector(e.target.value); setPage(1); }} style={{ background: C.panel, border: `1px solid ${C.panelLine}`, borderRadius: 8, padding: '10px 12px', color: C.text, fontSize: 13 }}><option value="All">All Sectors</option>{SECTOR_KEYS.map((s) => <option key={s} value={s}>{s}</option>)}</select>
               <select value={filterRisk} onChange={(e) => { setFilterRisk(e.target.value); setPage(1); }} style={{ background: C.panel, border: `1px solid ${C.panelLine}`, borderRadius: 8, padding: '10px 12px', color: C.text, fontSize: 13 }}><option value="All">All Risk Levels</option><option value="High Risk">High Risk</option><option value="Medium Risk">Medium Risk</option><option value="Low Risk">Low Risk</option></select>
             </div>
@@ -466,7 +475,7 @@ export default function GSTAnomalySystem() {
                         <span style={{ fontSize: 14.5, fontWeight: 600 }}>{d.businessName}</span>
                         {f && (f.status === 'flagged' || f.status === 'assigned') && <span style={{ fontSize: 10, background: `${C.high}22`, color: C.high, padding: '2px 7px', borderRadius: 99, fontWeight: 600 }}>{f.status === 'flagged' ? 'FLAGGED' : 'ASSIGNED'}</span>}
                       </div>
-                      <div style={{ fontSize: 12, color: C.textFaint, fontFamily: 'monospace', marginTop: 2 }}>{d.gstin} · {d.district} · {d.sector} · {d.segment}</div>
+                      <div style={{ fontSize: 12, color: C.textFaint, fontFamily: 'monospace', marginTop: 2 }}>{d.gstin} · {d.district}, {d.state} · {d.sector} · {d.segment}</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}><div style={{ fontSize: 13.5, fontWeight: 600 }}>{fmtCr(d.declared)}</div><div style={{ fontSize: 10.5, color: C.textFaint }}>declared</div></div>
                     <TierPill score={d.riskScore} />
@@ -490,8 +499,17 @@ export default function GSTAnomalySystem() {
             {profileLoading || !selectedDealer ? (<div style={{ height: 300, background: C.panel, borderRadius: 14, opacity: 0.5 }} />) : (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
-                  <div><div style={{ fontSize: 22, fontWeight: 700 }}>{selectedDealer.businessName}</div><div style={{ fontSize: 13, color: C.textFaint, fontFamily: 'monospace', marginTop: 6 }}>{selectedDealer.gstin} · {selectedDealer.district} · {selectedDealer.sector} · {selectedDealer.segment} · {selectedDealer.regType}</div></div>
+                  <div><div style={{ fontSize: 22, fontWeight: 700 }}>{selectedDealer.businessName}</div><div style={{ fontSize: 13, color: C.textFaint, fontFamily: 'monospace', marginTop: 6 }}>{selectedDealer.gstin} · {selectedDealer.district}, {selectedDealer.state} · {selectedDealer.sector} · {selectedDealer.segment} · {selectedDealer.regType}</div></div>
                   <RiskBadge score={selectedDealer.riskScore} size="lg" />
+                  {selectedDealer.mlRisk != null && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', fontFamily: 'monospace', fontSize: 12, background: C.ink2, border: `1px solid ${C.panelLine}`, borderRadius: 10, padding: '10px 14px', width: '100%' }}>
+                      <span style={{ color: C.textFaint, letterSpacing: '0.08em' }}>PHASE 2 ML</span>
+                      <span style={{ color: C.sealBright }}>XGBoost {selectedDealer.mlRisk}</span>
+                      <span style={{ color: riskTier(selectedDealer.mlRisk).color }}>{selectedDealer.mlTier}</span>
+                      {selectedDealer.mlType && <span style={{ color: C.textSoft }}>typology: {ANOMALY_LABELS[selectedDealer.mlType] || selectedDealer.mlType} ({Math.round((selectedDealer.mlTypeConfidence || 0) * 100)}%)</span>}
+                      {selectedDealer.isoFlag != null && <span style={{ color: selectedDealer.isoFlag ? C.med : C.textFaint }}>IsolationForest {selectedDealer.isoFlag ? 'anomalous' : 'in-distribution'}</span>}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }} className="profile-grid">
                   <div style={{ background: C.paper, borderRadius: 14, padding: 26, color: C.inkOnPaper }}>
@@ -512,6 +530,14 @@ export default function GSTAnomalySystem() {
                   </div>
                   <div style={{ background: C.panel, border: `1px solid ${C.panelLine}`, borderRadius: 14, padding: 26 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 18, color: C.textFaint, letterSpacing: 0.5 }}>WHY FLAGGED</div>
+                    {selectedDealer.mlReasons && selectedDealer.mlReasons.length > 0 && (
+                      <div style={{ marginBottom: 18, background: `${C.seal}10`, border: `1px solid ${C.seal}44`, borderRadius: 10, padding: 14 }}>
+                        <div style={{ fontSize: 11, fontFamily: 'monospace', color: C.sealBright, letterSpacing: '0.08em', marginBottom: 10 }}>SHAP · XGBOOST ATTRIBUTIONS (LIVE MODEL)</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {selectedDealer.mlReasons.map((r, i) => (<div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: C.sealBright, marginTop: 7, flexShrink: 0 }} /><div style={{ fontSize: 12.5, lineHeight: 1.6, color: C.textSoft, fontFamily: 'monospace' }}>{r}</div></div>))}
+                        </div>
+                      </div>
+                    )}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{selectedDealer.reasons.map((r, i) => (<div key={i} style={{ display: 'flex', gap: 11, alignItems: 'flex-start' }}><div style={{ width: 6, height: 6, borderRadius: '50%', background: riskTier(selectedDealer.riskScore).color, marginTop: 7, flexShrink: 0 }} /><div style={{ fontSize: 13.5, lineHeight: 1.6, color: C.textSoft }}>{r}</div></div>))}</div>
                   </div>
                 </div>
@@ -564,6 +590,20 @@ export default function GSTAnomalySystem() {
         {view === 'analytics' && (
           <div>
             <div style={{ marginBottom: 26 }}><div style={{ fontSize: 20, fontWeight: 600 }}>Analytics</div><div style={{ fontSize: 13.5, color: C.textSoft, marginTop: 4 }}>Sector-level risk comparison and anomaly composition.</div></div>
+            {summary && summary.ml && (
+              <div style={{ background: C.panel, border: `1px solid ${C.panelLine}`, borderRadius: 14, padding: 24, marginBottom: 20 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Phase 2 · Model Overview (XGBoost + Isolation Forest + SHAP)</div>
+                <div style={{ fontSize: 12.5, color: C.textFaint, marginBottom: 18 }}>Live ML inference served by the backend · trained on the 15,000-dealer labeled dataset</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, fontFamily: 'monospace', fontSize: 12.5 }} className="ml-grid">
+                  <div style={{ background: C.ink2, border: `1px solid ${C.panelLine}`, borderRadius: 10, padding: 14 }}><div style={{ color: C.sealBright, marginBottom: 6 }}>XGBOOST FRAUD CLASSIFIER</div><div style={{ color: C.text }}>typology top-1 98.0%</div><div style={{ color: C.textFaint }}>ROC-AUC 0.9998 · PR-AUC 0.9966</div></div>
+                  <div style={{ background: C.ink2, border: `1px solid ${C.panelLine}`, borderRadius: 10, padding: 14 }}><div style={{ color: C.sealBright, marginBottom: 6 }}>ISOLATION FOREST</div><div style={{ color: C.text }}>45% of planted fraud isolated</div><div style={{ color: C.textFaint }}>at a 5% false-alarm band (unsupervised)</div></div>
+                  <div style={{ background: C.ink2, border: `1px solid ${C.panelLine}`, borderRadius: 10, padding: 14 }}><div style={{ color: C.sealBright, marginBottom: 6 }}>SHAP EXPLAINABILITY</div><div style={{ color: C.text }}>every score rupee-explained</div><div style={{ color: C.textFaint }}>top drivers: purchase flow · stock checkpoint</div></div>
+                </div>
+                <div style={{ marginTop: 14, fontFamily: 'monospace', fontSize: 12.5, color: C.textSoft }}>
+                  ML vs rule-engine agreement: {summary.ml.agreementWithRules}% · ML high-risk: {summary.ml.high.toLocaleString('en-IN')} · ML avg score: {summary.ml.avgRisk ?? '—'}
+                </div>
+              </div>
+            )}
             <div style={{ background: C.panel, border: `1px solid ${C.panelLine}`, borderRadius: 14, padding: 24, marginBottom: 20 }}>
               <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>Sector-wise Risk Comparison</div>
               <div style={{ fontSize: 12.5, color: C.textFaint, marginBottom: 18 }}>Average risk score and dealer count by sector</div>
@@ -589,6 +629,7 @@ export default function GSTAnomalySystem() {
           .cc-grid { grid-template-columns: 1fr !important; }
           .profile-grid { grid-template-columns: 1fr !important; }
           .signal-detail-grid { grid-template-columns: 1fr 1fr !important; }
+          .ml-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>

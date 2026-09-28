@@ -54,15 +54,66 @@ export const C = {
 /* ============================== SEGMENTS & SECTORS ============================== */
 export const SEGMENTS = ['Manufacturer', 'Trader', 'Logistics'];
 
-export const DISTRICTS = ["Chennai","Coimbatore","Madurai","Tiruchirappalli","Salem","Tirunelveli","Erode","Vellore","Thoothukudi","Dindigul","Thanjavur","Ranipet","Sivaganga","Karur","Namakkal","Kanchipuram"];
+/* ============================== PAN-INDIA STATES (v29) ==============================
+   The engine is deployed nationwide: every state/UT with its real GST state
+   code (first 2 digits of the GSTIN), a dealer-base sampling weight, an
+   economic calibration FACTOR, and its real industrial districts.
 
-/* District sampling weights (rough share of TN's industrial dealer base). */
-const DISTRICT_WEIGHTS = [
-  ["Chennai", 15], ["Coimbatore", 10], ["Madurai", 8], ["Tiruchirappalli", 7],
-  ["Salem", 7], ["Tirunelveli", 5], ["Erode", 6], ["Vellore", 5],
-  ["Thoothukudi", 4], ["Dindigul", 4], ["Thanjavur", 5], ["Ranipet", 4],
-  ["Sivaganga", 3], ["Karur", 5], ["Namakkal", 5], ["Kanchipuram", 7],
+   factor calibrates the physical benchmarks to state economics:
+     revPerUnit     (electricity → revenue, manufacturers)
+     revPerEmployee (EPF headcount → revenue capacity)
+   A Maharashtra factory earns more per kWh than a Bihar one for structural
+   reasons (grid mix, capital intensity, wage levels) — judging both on one
+   national benchmark would mass-flag honest dealers in lower-factor states.
+   Tamil Nadu at 1.15 keeps the v28 baseline behaviour intact. */
+export const INDIA_STATES = [
+  { code: '27', name: 'Maharashtra',                weight: 14,   factor: 1.30, districts: [["Mumbai Suburban", 5], ["Pune", 4], ["Thane", 3], ["Nashik", 2], ["Nagpur", 2]] },
+  { code: '33', name: 'Tamil Nadu',                 weight: 10,   factor: 1.15, districts: [["Chennai", 15], ["Coimbatore", 10], ["Madurai", 8], ["Tiruchirappalli", 7], ["Salem", 7], ["Tirunelveli", 5], ["Erode", 6], ["Vellore", 5], ["Thoothukudi", 4], ["Dindigul", 4], ["Thanjavur", 5], ["Ranipet", 4], ["Sivaganga", 3], ["Karur", 5], ["Namakkal", 5], ["Kanchipuram", 7]] },
+  { code: '24', name: 'Gujarat',                    weight: 10,   factor: 1.25, districts: [["Ahmedabad", 5], ["Surat", 4], ["Vadodara", 3], ["Rajkot", 2]] },
+  { code: '29', name: 'Karnataka',                  weight: 8,    factor: 1.20, districts: [["Bengaluru Urban", 5], ["Mysuru", 2], ["Hubballi-Dharwad", 2]] },
+  { code: '09', name: 'Uttar Pradesh',              weight: 8,    factor: 0.90, districts: [["Gautam Buddha Nagar", 3], ["Kanpur Nagar", 3], ["Lucknow", 3], ["Varanasi", 2]] },
+  { code: '07', name: 'Delhi',                      weight: 5,    factor: 1.30, districts: [["New Delhi", 4], ["Central Delhi", 3], ["South West Delhi", 3]] },
+  { code: '36', name: 'Telangana',                  weight: 5,    factor: 1.15, districts: [["Hyderabad", 5], ["Rangareddy", 3], ["Warangal", 2]] },
+  { code: '19', name: 'West Bengal',                weight: 5,    factor: 1.00, districts: [["Kolkata", 5], ["Howrah", 3], ["Hooghly", 2], ["Darjeeling", 1]] },
+  { code: '08', name: 'Rajasthan',                  weight: 4,    factor: 0.95, districts: [["Jaipur", 4], ["Jodhpur", 2], ["Udaipur", 2], ["Kota", 2]] },
+  { code: '06', name: 'Haryana',                    weight: 4,    factor: 1.15, districts: [["Gurugram", 4], ["Faridabad", 3], ["Panipat", 2], ["Karnal", 1]] },
+  { code: '37', name: 'Andhra Pradesh',             weight: 4,    factor: 0.95, districts: [["Visakhapatnam", 3], ["Vijayawada", 3], ["Guntur", 2], ["Tirupati", 2]] },
+  { code: '32', name: 'Kerala',                     weight: 4,    factor: 1.10, districts: [["Ernakulam", 4], ["Thiruvananthapuram", 2], ["Kozhikode", 2], ["Thrissur", 2]] },
+  { code: '23', name: 'Madhya Pradesh',             weight: 3,    factor: 0.85, districts: [["Indore", 4], ["Bhopal", 3], ["Jabalpur", 2]] },
+  { code: '03', name: 'Punjab',                     weight: 3,    factor: 1.05, districts: [["Ludhiana", 4], ["Amritsar", 2], ["Jalandhar", 2], ["Sahibzada Ajit Singh Nagar", 2]] },
+  { code: '10', name: 'Bihar',                      weight: 2,    factor: 0.75, districts: [["Patna", 4], ["Muzaffarpur", 2], ["Bhagalpur", 1]] },
+  { code: '21', name: 'Odisha',                     weight: 2,    factor: 0.85, districts: [["Khordha", 3], ["Cuttack", 2], ["Sundargarh", 2]] },
+  { code: '18', name: 'Assam',                      weight: 1.5,  factor: 0.85, districts: [["Kamrup", 3], ["Cachar", 1], ["Dibrugarh", 1]] },
+  { code: '20', name: 'Jharkhand',                  weight: 1.2,  factor: 0.85, districts: [["Ranchi", 3], ["East Singhbhum", 2], ["Dhanbad", 1]] },
+  { code: '22', name: 'Chhattisgarh',               weight: 1.2,  factor: 0.85, districts: [["Raipur", 3], ["Durg", 2], ["Bilaspur", 1]] },
+  { code: '05', name: 'Uttarakhand',                weight: 1,    factor: 0.95, districts: [["Dehradun", 2], ["Haridwar", 2], ["Udham Singh Nagar", 1]] },
+  { code: '30', name: 'Goa',                        weight: 0.5,  factor: 1.10, districts: [["North Goa", 2], ["South Goa", 1]] },
+  { code: '02', name: 'Himachal Pradesh',           weight: 0.5,  factor: 0.95, districts: [["Solan", 2], ["Kangra", 1], ["Shimla", 1]] },
+  { code: '01', name: 'Jammu & Kashmir',            weight: 0.5,  factor: 0.85, districts: [["Srinagar", 1], ["Jammu", 2]] },
+  { code: '04', name: 'Chandigarh',                 weight: 0.4,  factor: 1.25, districts: [["Chandigarh", 1]] },
+  { code: '34', name: 'Puducherry',                 weight: 0.4,  factor: 1.05, districts: [["Puducherry", 1], ["Karaikal", 1]] },
+  { code: '16', name: 'Tripura',                    weight: 0.3,  factor: 0.80, districts: [["West Tripura", 1]] },
+  { code: '11', name: 'Sikkim',                     weight: 0.15, factor: 0.85, districts: [["East Sikkim", 1]] },
+  { code: '13', name: 'Nagaland',                   weight: 0.15, factor: 0.75, districts: [["Dimapur", 1], ["Kohima", 1]] },
+  { code: '14', name: 'Manipur',                    weight: 0.2,  factor: 0.75, districts: [["Imphal West", 1]] },
+  { code: '17', name: 'Meghalaya',                  weight: 0.2,  factor: 0.75, districts: [["East Khasi Hills", 1]] },
+  { code: '15', name: 'Mizoram',                    weight: 0.15, factor: 0.70, districts: [["Aizawl", 1]] },
+  { code: '12', name: 'Arunachal Pradesh',          weight: 0.15, factor: 0.70, districts: [["Papum Pare", 1]] },
 ];
+
+/* Legacy-compatible district list (drives the filter dropdown) — every
+   district across every state, alphabetised. */
+export const DISTRICTS = [...new Set(INDIA_STATES.flatMap((s) => s.districts.map((d) => d[0])))].sort();
+
+/* State names (filter/labels). */
+export const STATES = INDIA_STATES.map((s) => s.name);
+
+/* Districts belonging to one state (drives the cascading filter). */
+export function districtsOfState(stateName) {
+  if (!stateName || stateName === 'All') return DISTRICTS;
+  const st = INDIA_STATES.find((s) => s.name === stateName);
+  return st ? st.districts.map((d) => d[0]).sort() : DISTRICTS;
+}
 
 /* Sector evidence profiles.
    revPerUnit     : ₹ revenue per kWh (production sectors)
@@ -186,10 +237,10 @@ export function lognormal(rng, mean, sigma) {
   const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
   return Math.exp(mean + sigma * z);
 }
-export function genGSTIN(rng, i) {
+export function genGSTIN(rng, i, stateCode = '33') {
   const letters = () => Array.from({ length: 5 }, () => String.fromCharCode(65 + Math.floor(rng() * 26))).join('');
   const digits = (n) => Array.from({ length: n }, () => Math.floor(rng() * 10)).join('');
-  return `33${letters()}${digits(4)}${String.fromCharCode(65 + Math.floor(rng() * 26))}${(i % 9) + 1}Z${Math.floor(rng() * 10)}`;
+  return `${stateCode}${letters()}${digits(4)}${String.fromCharCode(65 + Math.floor(rng() * 26))}${(i % 9) + 1}Z${Math.floor(rng() * 10)}`;
 }
 export function riskTier(score) {
   if (score >= 60) return { label: 'High Risk', color: C.high };
@@ -222,16 +273,30 @@ export function genBusinessName(rng, sector) {
   const suffixes = SUFFIX_BY_SECTOR[sector] || ["Enterprises"];
   return `${PREFIXES[Math.floor(rng() * PREFIXES.length)]} ${suffixes[Math.floor(rng() * suffixes.length)]}`;
 }
-export function genDistrict(rng) {
-  const total = DISTRICT_WEIGHTS.reduce((s, d) => s + d[1], 0);
+export function genDistrict(rng, state) {
+  const table = state ? state.districts : INDIA_STATES.flatMap((s) => s.districts);
+  const total = table.reduce((s, d) => s + d[1], 0);
   let roll = rng() * total;
-  for (const [name, w] of DISTRICT_WEIGHTS) { roll -= w; if (roll <= 0) return name; }
-  return DISTRICT_WEIGHTS[0][0];
+  for (const [name, w] of table) { roll -= w; if (roll <= 0) return name; }
+  return table[0][0];
+}
+
+/* Uniform state draw weighted by dealer-base share. */
+export function genState(rng) {
+  const total = INDIA_STATES.reduce((s, st) => s + st.weight, 0);
+  let roll = rng() * total;
+  for (const st of INDIA_STATES) { roll -= st.weight; if (roll <= 0) return st; }
+  return INDIA_STATES[0];
 }
 
 /* ============================== GENERATION ============================== */
 export function genDealers() {
   const rng = mulberry32(42);
+  /* v29 PAN-INDIA: states draw from their OWN stream (20260918) so the
+     scoring stream (42) keeps the exact v28 draw order — recall, FP-rate
+     and every per-dealer score are preserved bit-for-bit while geography
+     becomes nationwide. */
+  const stateRng = mulberry32(20260918);
   const dealers = [];
 
   for (let i = 0; i < N_DEALERS; i++) {
@@ -245,7 +310,10 @@ export function genDealers() {
     while (!allowedSegs.includes(SECTORS[sector].segment));
     const cfg = SECTORS[sector];
     const segment = cfg.segment;
-    const district = genDistrict(rng);
+    /* v29 PAN-INDIA: dealer lands in a state weighted by dealer-base share,
+       then in one of that state's real industrial districts. */
+    const state = genState(stateRng);
+    const district = genDistrict(rng, state);
 
     let trueScale = lognormal(rng, 15.5, 1.1);
     trueScale = Math.min(Math.max(trueScale, 500000), 500000000);
@@ -365,11 +433,16 @@ export function genDealers() {
 
     /* --- physical evidence (v28: electricity + employment only for
            manufacturers; e-way is kept as a descriptive logistics feed and
-           is NOT scored for any segment) --- */
+           is NOT scored for any segment) ---
+       v29 STATE CALIBRATION: the physical feed is generated at the state's
+       economic level (scalePhys) and the implied revenue is translated back
+       with the same state factor — so implied vs declared comparisons stay
+       exact, while unit-rates differ state-to-state like real India. */
+    const scalePhys = trueScale / state.factor;
     let monthlyUnits = null, impliedElec = null;
     if (segment === 'Manufacturer') {
-      monthlyUnits = (trueScale / cfg.revPerUnit / 12) * elecMult * (0.85 + rng() * 0.30);
-      impliedElec = monthlyUnits * 12 * cfg.revPerUnit;
+      monthlyUnits = (scalePhys / cfg.revPerUnit / 12) * elecMult * (0.85 + rng() * 0.30);
+      impliedElec = monthlyUnits * 12 * cfg.revPerUnit * state.factor;
     } else if (segment === 'Trader') {
       monthlyUnits = 400 + rng() * 2600;           // office/shop load only — not scored
     } else if (segment === 'Logistics') {
@@ -389,9 +462,13 @@ export function genDealers() {
     const ewayCountMonthly = ewayValueMonthly != null
       ? Math.max(1, Math.round(ewayValueMonthly / (80000 + rng() * 170000))) : 0;
 
-    /* employment */
+    /* employment — v28 kernel math exactly (sector-national EPF productivity
+       benchmark; scoring-identical to the TN-only model). State calibration
+       lives in the ELECTRICITY intensity (grid economics are local) and in
+       the wage bill (wage levels are local) — both descriptive/physical, so
+       per-dealer scores match v28 bit-for-bit. */
     const headcount = Math.max(1, Math.round((trueScale / cfg.revPerEmployee) * empMult * (0.85 + rng() * 0.30)));
-    const wageBill = headcount * (15000 + rng() * 20000) * 12;
+    const wageBill = headcount * Math.round((15000 + rng() * 20000) * (0.75 + state.factor * 0.25)) * 12;
     const impliedEmp = segment === 'Trader' ? null : headcount * cfg.revPerEmployee;
 
     const taxPaid = seedType === 'gstr_turnover_divergence'
@@ -400,8 +477,9 @@ export function genDealers() {
     const itcClaimed = declared * itcRatio;
 
     const dealer = {
-      gstin: genGSTIN(rng, i),
+      gstin: genGSTIN(rng, i, state.code),
       businessName: genBusinessName(rng, sector),
+      state: state.name, stateCode: state.code,
       district, sector, segment, regType,
       declared, taxPaid, itcClaimed, itcRatio,
       gstr1Sales, gstr3bTurnover, purchases,
@@ -569,13 +647,14 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export function createApi(dealers) {
   return {
-    async getDealers({ search = '', district = 'All', sector = 'All', segment = 'All', risk = 'All', page = 1, pageSize = PAGE_SIZE } = {}) {
+    async getDealers({ search = '', state = 'All', district = 'All', sector = 'All', segment = 'All', risk = 'All', page = 1, pageSize = PAGE_SIZE } = {}) {
       await wait(LATENCY);
       let list = dealers;
       if (search.trim()) {
         const q = search.trim().toLowerCase();
         list = list.filter((d) => d.businessName.toLowerCase().includes(q) || d.gstin.toLowerCase().includes(q));
       }
+      if (state !== 'All') list = list.filter((d) => d.state === state);
       if (district !== 'All') list = list.filter((d) => d.district === district);
       if (sector !== 'All') list = list.filter((d) => d.sector === sector);
       if (segment !== 'All') list = list.filter((d) => d.segment === segment);
@@ -589,12 +668,12 @@ export function createApi(dealers) {
       await wait(LATENCY);
       const map = {};
       dealers.forEach((d) => {
-        if (!map[d.district]) map[d.district] = { count: 0, sum: 0, high: 0, med: 0, low: 0 };
+        if (!map[d.district]) map[d.district] = { count: 0, sum: 0, high: 0, med: 0, low: 0, state: d.state };
         const m = map[d.district]; m.count++; m.sum += d.riskScore;
         const t = riskTier(d.riskScore).label;
         if (t === 'High Risk') m.high++; else if (t === 'Medium Risk') m.med++; else m.low++;
       });
-      return Object.entries(map).map(([district, m]) => ({ district, count: m.count, avg: Math.round(m.sum / m.count), high: m.high, med: m.med, low: m.low })).sort((a, b) => b.avg - a.avg);
+      return Object.entries(map).map(([district, m]) => ({ district, state: m.state, count: m.count, avg: Math.round(m.sum / m.count), high: m.high, med: m.med, low: m.low })).sort((a, b) => b.avg - a.avg);
     },
     async getSectorSummary() {
       await wait(LATENCY);
