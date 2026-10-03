@@ -94,7 +94,7 @@ function Landing({ featuredDealer, totalDealers, onEnter }) {
         <div style={{ maxWidth: 1180, margin: '0 auto', padding: '0 24px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <div style={{ width: 32, height: 32, borderRadius: 7, background: `linear-gradient(155deg, ${C.sealBright}, ${C.seal})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ShieldAlert size={16} color="#160F02" /></div>
-            <div><div style={{ fontSize: 14, fontWeight: 600 }}>GST Anomaly Detection</div><div style={{ fontSize: 10.5, color: C.textFaint }}>GST Intelligence Network · All States & UTs · Phase 2 ML Backend</div></div>
+            <div><div style={{ fontSize: 14, fontWeight: 600 }}>GST Anomaly Detection</div><div style={{ fontSize: 10.5, color: C.textFaint }}>Federated intelligence layer for government data: one explainable risk score per GSTIN</div></div>
           </div>
           <button onClick={onEnter} style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.seal, color: '#160F02', border: 'none', borderRadius: 7, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             View live demo <ArrowRight size={13} />
@@ -392,7 +392,7 @@ export default function GSTAnomalySystem() {
         <div style={{ maxWidth: 1180, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <button onClick={goToLanding} style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
             <div style={{ width: 32, height: 32, borderRadius: 7, background: `linear-gradient(155deg, ${C.sealBright}, ${C.seal})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ShieldAlert size={16} color="#160F02" /></div>
-            <div><div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>GST Anomaly Detection</div><div style={{ fontSize: 10.5, color: C.textFaint }}>GST Intelligence · Pan-India Network (All States & UTs)</div></div>
+            <div><div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>GST Anomaly Detection</div><div style={{ fontSize: 10.5, color: C.textFaint }}>Federated intelligence layer for government data: one explainable risk score per GSTIN</div></div>
           </button>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={goToLanding} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 500, padding: '8px 14px', borderRadius: 7, border: 'none', cursor: 'pointer', background: 'transparent', color: C.textSoft }}><Home size={14} /> Overview</button>
